@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Cosas que quiero hacer contigo</title>
+<style>
+:root{color-scheme:dark;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);--ink:#f4eeff;--soft:#b9a9e0;--card:rgba(20,12,48,.78)}
+html{height:100%;scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;height:100%;overflow:hidden;background:radial-gradient(ellipse at 50% 120%,#3a1a6e 0%,#140a33 45%,#05030f 100%);color:var(--ink);font-family:Georgia,'Times New Roman',serif}
+canvas{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:manipulation}
+header{position:fixed;top:calc(env(safe-area-inset-top,0px) + 18px);left:0;right:0;text-align:center;pointer-events:none;padding:0 16px}
+h1{margin:0;font-weight:400;font-style:italic;font-size:clamp(1.5rem,5vw,2.6rem);letter-spacing:.03em;text-shadow:0 0 18px rgba(200,160,255,.7)}
+header p{margin:6px 0 0;color:var(--soft);font-size:.9rem;font-family:system-ui,sans-serif;letter-spacing:.08em}
+#card{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom,0px) + 28px);transform:translate(-50%,20px);width:min(88vw,460px);box-sizing:border-box;padding:20px 24px;text-align:center;background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid var(--c,#c9a7ff);border-radius:20px;box-shadow:0 0 34px var(--c,#c9a7ff);opacity:0;pointer-events:none;transition:opacity .4s,transform .4s}
+#card.on{opacity:1;transform:translate(-50%,0)}
+#card small{display:block;color:var(--soft);font-family:system-ui,sans-serif;letter-spacing:.15em;font-size:.72rem;margin-bottom:6px}
+#card b{font-weight:400;font-size:clamp(1.3rem,4.5vw,1.8rem);font-style:italic;color:var(--ink)}
+#rain{position:fixed;inset:0;overflow:hidden;pointer-events:none;z-index:5}
+.heart{position:absolute;top:0;width:var(--s);height:var(--s);padding:0;border:0;background:none;cursor:pointer;pointer-events:auto;animation:fall var(--d) linear forwards;-webkit-tap-highlight-color:transparent}
+.heart span{display:block;width:100%;height:100%;animation:sway 3s ease-in-out infinite alternate;transition:transform .2s}
+.heart svg{width:100%;height:100%;fill:var(--h);filter:drop-shadow(0 0 8px var(--h));animation:beat 1.2s ease-in-out infinite}
+.heart:hover{animation-play-state:paused}.heart:hover span{transform:scale(1.3)}
+.heart.pop{animation:pop .45s ease-out forwards}
+@keyframes fall{from{transform:translateY(-90px)}to{transform:translateY(calc(100vh + 90px))}}
+@keyframes sway{from{transform:translateX(-18px) rotate(-10deg)}to{transform:translateX(18px) rotate(10deg)}}
+@keyframes beat{50%{transform:scale(1.12)}}
+@keyframes pop{to{transform:scale(2.4);opacity:0}}
+@media (prefers-reduced-motion:reduce){.heart svg{animation:none}}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<header><h1>Cosas que quiero hacer contigo</h1><p id="count">✦ toca las estrellas · 0 / 20</p></header>
+<div id="rain"></div>
+<div id="card"><small id="n"></small><b id="t"></b></div>
+<script>
+const frases=["Salir al parque de diversiones","Comer juntos","Dormir juntos","Despertar juntos","Hacerte de comer","Salir de compras contigo","Ver una película juntos","Ver una serie juntos","Un picnic juntos","Ser tu novio","Verte todos los días","Ir a la playa juntos","Besarnos bajo la luz de la luna","Cuidar un animalito juntos","Jugar un juego de mesa juntos","Cuidarte cuando estés enferma","Ir por un helado","Compartirte mi ropa","Darte un ramo que te merezcas","Vivir algún día contigo"];
+const P=[[.08,.62],[.15,.45],[.24,.58],[.3,.38],[.4,.5],[.46,.3],[.54,.44],[.6,.26],[.68,.4],[.76,.24],[.84,.38],[.92,.28],[.88,.55],[.78,.62],[.7,.76],[.58,.68],[.46,.78],[.34,.72],[.22,.82],[.12,.78]];
+const extra=[[4,6],[6,8],[2,17],[8,13],[5,15],[10,12],[1,3]];
+const cv=document.getElementById('c'),g=cv.getContext('2d');
+const card=document.getElementById('card'),tt=document.getElementById('t'),nn=document.getElementById('n'),cnt=document.getElementById('count');
+let W,H,D,bg=[],seen=new Set(),sel=-1,hover=-1,shoot=null;
+const stars=P.map((p,i)=>({x:p[0],y:p[1],r:7+(i*7%5),ph:i*1.3,i}));
+function size(){D=window.devicePixelRatio||1;W=innerWidth;H=innerHeight;cv.width=W*D;cv.height=H*D;g.setTransform(D,0,0,D,0,0);
+ bg=Array.from({length:Math.round(W*H/2800)},()=>({x:Math.random()*W,y:Math.random()*H,r:Math.random()*1.3+.2,s:Math.random()*2+.5,p:Math.random()*6}))}
+addEventListener('resize',size);size();
+const pos=s=>{const top=110,bot=150;return[s.x*W*.94+W*.03,top+s.y*(H-top-bot)]};
+const hue=(s,t)=>(t*28+s.i*18)%360;
+function spark(x,y,r,h,a){
+ const gr=g.createRadialGradient(x,y,0,x,y,r*4);
+ gr.addColorStop(0,`hsla(${h},100%,85%,${a})`);gr.addColorStop(.3,`hsla(${h},100%,65%,${a*.45})`);gr.addColorStop(1,`hsla(${h},100%,60%,0)`);
+ g.fillStyle=gr;g.beginPath();g.arc(x,y,r*4,0,7);g.fill();
+ g.fillStyle=`hsla(${h},100%,92%,${a})`;g.beginPath();
+ for(let k=0;k<8;k++){const ang=k*Math.PI/4-Math.PI/2,rr=k%2?r*.45:r*1.7;g.lineTo(x+Math.cos(ang)*rr,y+Math.sin(ang)*rr)}
+ g.closePath();g.fill();
+}
+function frame(ms){
+ const t=ms/1000;g.clearRect(0,0,W,H);
+ for(const b of bg){g.fillStyle=`rgba(255,255,255,${.25+.55*Math.abs(Math.sin(t*b.s+b.p))})`;g.beginPath();g.arc(b.x,b.y,b.r,0,7);g.fill()}
+ if(!shoot&&Math.random()<.003)shoot={x:Math.random()*W*.7,y:Math.random()*H*.3,l:0};
+ if(shoot){shoot.l+=.02;const a=1-shoot.l;g.strokeStyle=`rgba(255,255,255,${a})`;g.lineWidth=1.5;g.beginPath();
+  g.moveTo(shoot.x+shoot.l*260,shoot.y+shoot.l*130);g.lineTo(shoot.x+shoot.l*260-60,shoot.y+shoot.l*130-30);g.stroke();if(shoot.l>=1)shoot=null}
+ const pts=stars.map(pos);
+ g.lineWidth=1;
+ const link=(a,b)=>{const gr=g.createLinearGradient(pts[a][0],pts[a][1],pts[b][0],pts[b][1]);
+  gr.addColorStop(0,`hsla(${hue(stars[a],t)},90%,75%,.5)`);gr.addColorStop(1,`hsla(${hue(stars[b],t)},90%,75%,.5)`);
+  g.strokeStyle=gr;g.beginPath();g.moveTo(...pts[a]);g.lineTo(...pts[b]);g.stroke()};
+ for(let i=0;i<19;i++)link(i,i+1);
+ g.setLineDash([3,6]);extra.forEach(e=>link(e[0],e[1]));g.setLineDash([]);
+ stars.forEach((s,i)=>{const[x,y]=pts[i];
+  const pulse=1+.18*Math.sin(t*2+s.ph)+(i===hover?.35:0)+(i===sel?.5:0);
+  spark(x,y,s.r*pulse*.8,hue(s,t),seen.has(i)?1:.8);
+  if(seen.has(i)){g.strokeStyle=`hsla(${hue(s,t)},100%,80%,.45)`;g.beginPath();g.arc(x,y,s.r*2.6+Math.sin(t*3+i)*1.5,0,7);g.stroke()}
+ });
+ requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+function find(e){let best=-1,bd=34;stars.forEach((s,i)=>{const[x,y]=pos(s),d=Math.hypot(x-e.clientX,y-e.clientY);if(d<bd){bd=d;best=i}});return best}
+cv.addEventListener('pointermove',e=>{hover=find(e);cv.style.cursor=hover>=0?'pointer':'default'});
+cv.addEventListener('pointerdown',e=>{
+ const i=find(e);
+ if(i<0){card.classList.remove('on');sel=-1;return}
+ sel=i;seen.add(i);
+ const h=(performance.now()/1000*28+i*18)%360;
+ card.style.setProperty('--c',`hsl(${h},90%,72%)`);
+ nn.textContent=`ESTRELLA ${i+1} DE 20`;tt.textContent=frases[i];
+ card.classList.add('on');
+ cnt.textContent=seen.size===20?'✦ ¡descubriste toda la constelación! ✦':`✦ toca las estrellas · ${seen.size} / 20`;
+});
+const msgs=["Te amo, Emily","Me haces tan feliz","Te extraño","Eres mi vida","Mi niña hermosa","Eres mi princesa","Deseo mucho verte","Tus ojos me alegran la vista todos los días","Extraño tus cálidos abrazos calentando mi alma","Eres mi gran amor","Siempre pienso en ti","Me amas, eres mi fan","Amo hablar contigo","Amo tus llamadas","Me haces sentir muy especial","Me llenas de orgullo cada vez que me cuentas tus logros","Gracias por amarme tanto","El sabor de tus labios es como una explosión en mi corazón"];
+const rain=document.getElementById('rain');let bag=[],hs=[0,330,345,300,15,280];
+function nextMsg(){if(!bag.length)bag=msgs.map((_,i)=>i).sort(()=>Math.random()-.5);return bag.pop()}
+function drop(){
+ if(rain.children.length>9)return;
+ const b=document.createElement('button'),m=nextMsg(),s=34+Math.random()*22,hh=hs[Math.floor(Math.random()*hs.length)];
+ b.className='heart';b.setAttribute('aria-label','Mensaje de amor');
+ b.style.cssText=`left:${Math.random()*(innerWidth-s-10)+5}px;--s:${s}px;--d:${9+Math.random()*6}s;--h:hsl(${hh},95%,68%)`;
+ b.innerHTML='<span><svg viewBox="0 0 24 24"><path d="M12 21s-8-5.4-8-11a4.5 4.5 0 0 1 8-2.8A4.5 4.5 0 0 1 20 10c0 5.6-8 11-8 11z"/></svg></span>';
+ b.onclick=()=>{sel=-1;card.style.setProperty('--c',`hsl(${hh},95%,72%)`);nn.textContent='❤ PARA TI, EMILY ❤';tt.textContent=msgs[m];card.classList.add('on');b.classList.add('pop');setTimeout(()=>b.remove(),450)};
+ b.addEventListener('animationend',e=>{if(e.animationName==='fall')b.remove()});
+ rain.appendChild(b);
+}
+setInterval(drop,1500);drop();setTimeout(drop,600);
+</script>
+</body>
+</html>
